@@ -1,0 +1,30 @@
+.alert-bar {
+  width: 250px;
+  height: 30px;
+  font-size: 12px;
+  background: rgb(243, 243, 243);
+  color: rgb(1, 26, 32);
+  border-radius: 15px;
+  border: 0.15px solid rgb(140, 221, 217);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 15px 15px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
+  -webkit-animation: fadeinout 2.5s linear forwards;
+  animation: fadeinout 1s linear forwards;
+}
+
+@-webkit-keyframes fadeinout {
+  0%,
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeinout {
+  0%,
+  50% {
+    opacity: 0;
+  }
+}

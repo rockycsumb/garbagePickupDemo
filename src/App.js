@@ -1,11 +1,13 @@
-import "./styles.css";
-import MLtutorial from "./MLTutorial";
-import BoilPlate from "./BoilPlate";
+import GarbagePickup from "./GarbagePickupQuickDemo";
+import GarbageInfo from "./GarbageInfo";
+import QuickCheck from "./QuickCheck";
+import "./app.css";
 
 export default function App() {
   return (
-    <div className="App">
-      <BoilPlate />
+    <div className="app-container">
+      <QuickCheck />
+      <GarbageInfo />
     </div>
   );
 }

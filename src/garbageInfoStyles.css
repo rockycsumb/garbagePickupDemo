@@ -1,0 +1,28 @@
+.garbageinfo-container {
+  margin-top: 25px;
+  width: 80%;
+}
+
+.garbageinfo-hr {
+  width: 100%;
+  border: 1px solid rgb(140, 221, 217);
+}
+
+.garbageinfo-testcases {
+  font-size: 9px;
+  color: rgb(82, 82, 82);
+}
+
+.garbageinfo-links {
+  font-size: 9px;
+  color: blue;
+  margin: 0 3px;
+}
+
+.garbageinfo-h3 {
+  margin-bottom: 3px;
+}
+
+.garbageinfo-p {
+  margin: 0 0 5px 0;
+}
