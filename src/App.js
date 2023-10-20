@@ -1,12 +1,11 @@
-import GarbagePickup from "./GarbagePickupQuickDemo";
 import GarbageInfo from "./GarbageInfo";
-import QuickCheck from "./QuickCheck";
+import GarbagePickupDemo from "./GarbagePickupDemo";
 import "./app.css";
 
 export default function App() {
   return (
     <div className="app-container">
-      <QuickCheck />
+      <GarbagePickupDemo />
       <GarbageInfo />
     </div>
   );

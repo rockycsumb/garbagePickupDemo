@@ -1,23 +1,20 @@
 import { useRef, useEffect, useState } from "react";
 import { FaTrashAlt, FaPlay, FaStop, FaPause } from "react-icons/fa";
 import * as moment from "moment";
-import myVid from "./pen_sample.mp4";
-import "./garbagePickupStylesQuick.css";
+import "./garbagePickupDemoStyle.css";
 import GarbagePickupStats from "./GarbagePickupStats";
 
 //roboflow cred
 const PUBLISHABLE_ROBOFLOW_API_KEY = "rf_t1Ap7HRSGSeZRzIVfP09vvtV3i13";
-// const PROJECT_URL = "pendetection-kyw12"; //"garbagecanpickup";
-const PROJECT_URL = "garbagecanpickup"; //"garbagecanpickup";
+const PROJECT_URL = "garbagecanpickup";
 const MODEL_VERSION = "2";
 
 //Global Variables
 var inferRunning = false;
 var emptyingTrash = false;
-var emptyingTrashStopped = false;
 var pickupTimes = ["Times will show here, give a try!"];
 
-const QuickCheck = (props) => {
+const GarbagePickupDemo = (props) => {
   const [modelStatus, setModelStatus] = useState("model not loaded");
   const [modelStatusCss, setModelStatusCss] = useState("removed");
   const [disableCamButton, setDisableCamButton] = useState(false);
@@ -29,11 +26,9 @@ const QuickCheck = (props) => {
     "Waiting for Garbage truck.",
   );
   const [garbageStatusCss, setGarbageStatusCss] = useState(
-    "garbageStatusAndTrash",
+    "garbage-status-trash",
   );
   const [trashCanCss, setTrashCanCss] = useState("trash-icon");
-
-  const [detectCounter, setDetectCounter] = useState(0);
 
   const canvasRef = useRef(null);
   const streamSourceRef = useRef(null);
@@ -42,6 +37,25 @@ const QuickCheck = (props) => {
   var model = undefined;
   var videoWidth = 360; //360 520
   var videoHeight = 360; // 260 360;
+
+  useEffect(() => {
+    loadModel();
+  });
+
+  useEffect(() => {
+    loadingAnimations();
+  }, []);
+
+  //show loading animations at startup
+  const loadingAnimations = () => {
+    setModelStatusCss("model-status-loading");
+    setGarbageStatusCss("removed");
+    setModelStatus("Object Detection Loading");
+    setTimeout(() => {
+      setModelStatusCss("removed");
+      setGarbageStatusCss("garbage-status-trash");
+    }, 2000);
+  };
 
   //Use the web cam
   const showWebCam = async () => {
@@ -54,10 +68,14 @@ const QuickCheck = (props) => {
         restartCamDetection();
       }
 
-      inferRunning = true;
-      loadModel();
+      await loadModel();
+
+      setModelStatusCss("removed");
+      setGarbageStatusCss("garbage-status-trash");
+
       await enableCam();
       setDisableStopButton(false);
+
       startDetection();
     }
   };
@@ -65,15 +83,10 @@ const QuickCheck = (props) => {
   const restartCamDetection = () => {
     setGarbageStatus("Waiting for Garbage truck.");
     emptyingTrash = false;
-    emptyingTrashStopped = false;
   };
 
   //load the model
-  const loadModel = () => {
-    setModelStatusCss("model-status-loading");
-    setGarbageStatusCss("removed");
-    setModelStatus("Object Detection Loading");
-
+  const loadModel = async () => {
     window.roboflow
       .auth({
         publishable_key: PUBLISHABLE_ROBOFLOW_API_KEY,
@@ -87,18 +100,7 @@ const QuickCheck = (props) => {
       })
       .then((ml) => {
         model = ml;
-        setModelStatus("Object Detection Loaded");
       });
-
-    // setTimeout(() => {
-    //   setModelStatusCss("model-status-loaded");
-    //   // setModelStatus("Object Detection Loaded");
-
-    //   setTimeout(() => {
-    //     setModelStatusCss("removed");
-    //     setGarbageStatusCss("garbageStatusAndTrash");
-    //   }, 3000);
-    // }, 2000);
   };
 
   //Start detecting
@@ -112,7 +114,7 @@ const QuickCheck = (props) => {
   };
 
   const clearCanvas = () => {
-    canvasRef.current.getContext("2d").clearRect(0, 0, 360, 260);
+    canvasRef.current.getContext("2d").clearRect(0, 0, 360, 360);
   };
 
   //Stop detection
@@ -120,7 +122,6 @@ const QuickCheck = (props) => {
     inferRunning = false;
     clearInterval(detectInterval.current);
 
-    // if (model !== undefined) model.teardown();
     //clear canvas when stop detecting
     setTimeout(() => {
       clearCanvas();
@@ -227,52 +228,41 @@ const QuickCheck = (props) => {
 
       const detections = await model.detect(streamSourceRef.current);
 
-      // console.log(detections);
-      // let truckPresent = false;
+      let truckPresent = false;
 
       if (detections.length > 0) {
         detections.forEach((el) => {
-          if (el.class === "GarbageBin" && el.confidence > 0.2) {
-            // truckPresent = true;
-            // console.log("found");
-            // setDetectCounter(2);
-            const ctx = canvasRef.current.getContext("2d");
-            drawBoxes(detections, ctx);
+          if (el.class === "garbageTruck" && el.confidence > 0.6) {
+            truckPresent = true;
+          }
+
+          if (
+            truckPresent &&
+            el.class === "garbagePickingUp" &&
+            el.confidence > 0.6
+          ) {
+            emptyingTrash = true;
+            setTrashCanCss("trash-icon trash-icon-empty");
+            setGarbageStatus("Emptying trash can!");
           }
         });
       }
-      // const ctx = canvasRef.current.getContext("2d");
-      // drawBoxes(detections, ctx);
 
-      //   detections.forEach((el) => {
-      //     if (
-      //       truckPresent &&
-      //       el.class === "garbagePickingUp" &&
-      //       el.confidence > 0.8
-      //     ) {
-      //       emptyingTrash = true;
-      //       setTrashCanCss("trash-icon trash-icon-empty");
-      //       setGarbageStatus("Emptying trash can!");
-      //     }
-      //   });
+      if (truckPresent) {
+        restartDetection(10);
+      } else {
+        restartDetection(1000);
+      }
 
-      //   if (truckPresent) {
-      //     restartDetection(10);
-      //   } else {
-      //     restartDetection(1000);
-      //   }
-      // }
+      if (emptyingTrash && !truckPresent) {
+        setTrashCanCss("trash-icon");
+        setGarbageStatus("Emptied Trash Can!");
+        stopCamera();
+        pickupTimes.push(moment().format("ddd, MM-DD-YYYY, h:mm a"));
+      }
 
-      // emptyingTrashStopped = !truckPresent && emptyingTrash;
-      // setTrashCanCss("trash-icon");
-      // setGarbageStatus("Emptied Trash Can!");
-      // pickupTimes.push(moment().format("ddd, MM-DD-YYYY, h:mm a"));
-
-      // if (emptyingTrash && emptyingTrashStopped) {
-      //   setTimeout(() => {
-      //     stopCamera();
-      //   }, 6000);
-      // }
+      const ctx = canvasRef.current.getContext("2d");
+      drawBoxes(detections, ctx);
     }
   };
 
@@ -369,8 +359,6 @@ const QuickCheck = (props) => {
   return (
     <div className="outer-container">
       <div className="app-container">
-        <div>{detectCounter}</div>
-
         <p className="garbagedemo-testcases">
           tested on: pixel 7 android blah, iphone chrome OS something
         </p>
@@ -461,4 +449,4 @@ const QuickCheck = (props) => {
   );
 };
 
-export default QuickCheck;
+export default GarbagePickupDemo;
