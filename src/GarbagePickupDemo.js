@@ -7,7 +7,7 @@ import GarbagePickupStats from "./GarbagePickupStats";
 //roboflow cred
 const PUBLISHABLE_ROBOFLOW_API_KEY = "rf_t1Ap7HRSGSeZRzIVfP09vvtV3i13";
 const PROJECT_URL = "garbagecanpickup";
-const MODEL_VERSION = "2";
+const MODEL_VERSION = "2"; //check
 
 //Global Variables
 var inferRunning = false;
