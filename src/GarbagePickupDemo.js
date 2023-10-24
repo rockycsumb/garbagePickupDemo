@@ -49,10 +49,12 @@ const GarbagePickupDemo = (props) => {
 
   //show loading animations at startup
   const loadingAnimations = () => {
+    setDisableCamButton(true);
     setModelStatusCss("model-status-loading");
     setGarbageStatusCss("removed");
     setModelStatus("Object Detection Loading");
     setTimeout(() => {
+      setDisableCamButton(false);
       setModelStatusCss("removed");
       setGarbageStatusCss("garbage-status-trash");
     }, 2000);
@@ -269,8 +271,11 @@ const GarbagePickupDemo = (props) => {
         restartDetection(1000);
       }
 
-      if (emptyingTrash && !truckPresent &&
-        (trashToleranceTicker > emptyTolerance)) {
+      if (
+        emptyingTrash &&
+        !truckPresent &&
+        trashToleranceTicker > emptyTolerance
+      ) {
         emptyingTrash = false;
         emptyTrashTolerance(false);
         setTrashCanCss("trash-icon");
