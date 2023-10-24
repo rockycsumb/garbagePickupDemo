@@ -37,6 +37,7 @@ const GarbagePickupDemo = (props) => {
   var model = undefined;
   var videoWidth = 360; //360 520
   var videoHeight = 360; // 260 360;
+  const emptyTolerance = 30;
 
   useEffect(() => {
     loadModel();
@@ -216,6 +217,19 @@ const GarbagePickupDemo = (props) => {
     }
   };
 
+  let trashToleranceTicker = 0;
+  let trashToleranceTimer = undefined;
+  const emptyTrashTolerance = (start) => {
+    if (!start) {
+      clearInterval(trashToleranceTimer);
+    } else {
+      trashToleranceTimer = setInterval(() => {
+        trashToleranceTicker++;
+      }, 1000);
+    }
+    return trashToleranceTicker;
+  };
+
   //Detection stuff
   const detect = async (model) => {
     console.log("detect");
@@ -242,6 +256,7 @@ const GarbagePickupDemo = (props) => {
             el.confidence > 0.6
           ) {
             emptyingTrash = true;
+            emptyTrashTolerance(true);
             setTrashCanCss("trash-icon trash-icon-empty");
             setGarbageStatus("Emptying trash can!");
           }
@@ -254,7 +269,10 @@ const GarbagePickupDemo = (props) => {
         restartDetection(1000);
       }
 
-      if (emptyingTrash && !truckPresent) {
+      if (emptyingTrash && !truckPresent &&
+        trashToleranceTicker > emptyTolerance) {
+        emptyingTrash = false;
+        emptyTrashTolerance(false);
         setTrashCanCss("trash-icon");
         setGarbageStatus("Emptied Trash Can!");
         stopCamera();
