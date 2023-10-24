@@ -270,7 +270,7 @@ const GarbagePickupDemo = (props) => {
       }
 
       if (emptyingTrash && !truckPresent &&
-        trashToleranceTicker > emptyTolerance) {
+        (trashToleranceTicker > emptyTolerance)) {
         emptyingTrash = false;
         emptyTrashTolerance(false);
         setTrashCanCss("trash-icon");
