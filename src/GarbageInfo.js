@@ -16,7 +16,7 @@ const GarbageInfo = () => {
         provide on youtube that shows a garbage pickup
         <a
           className="youtube-link"
-          href="https://www.youtube.com/watch?v=EO4XX_kX9C8"
+          href="https://www.youtube.com/watch?v=EpfElFyx8L8"
           target="_blank"
         >
           "Garbage pickup sample video"
