@@ -9,19 +9,19 @@ const PUBLISHABLE_ROBOFLOW_API_KEY = "rf_t1Ap7HRSGSeZRzIVfP09vvtV3i13";
 const PROJECT_URL = "garbagecanpickup";
 const MODEL_VERSION = "2"; //check
 
-//Global Variables
-var inferRunning = false;
-var emptyingTrash = false;
+//pickupTimes passed to props
 var pickupTimes = ["Times will show here, give a try!"];
 
 const GarbagePickupDemo = (props) => {
   const [modelStatus, setModelStatus] = useState("model not loaded");
   const [modelStatusCss, setModelStatusCss] = useState("removed");
-  const [disableCamButton, setDisableCamButton] = useState(false);
-  const [disableStopButton, setDisableStopButton] = useState(true);
+
   const [enableCamText, setEnableCamText] = useState(
     "Enable camera to start detection",
   );
+  const [disableCamButton, setDisableCamButton] = useState(false);
+  const [disableStopButton, setDisableStopButton] = useState(true);
+
   const [garbageStatus, setGarbageStatus] = useState(
     "Waiting for Garbage truck.",
   );
@@ -32,53 +32,51 @@ const GarbagePickupDemo = (props) => {
 
   const canvasRef = useRef(null);
   const streamSourceRef = useRef(null);
-  var detectInterval = useRef(null);
+  var videoWidth = 360;
+  var videoHeight = 360;
 
   var model = undefined;
-  var videoWidth = 360; //360 520
-  var videoHeight = 360; // 260 360;
+  var detectInterval = useRef(null);
+
   const emptyTolerance = 30;
+  var emptyingTrash = false;
 
   useEffect(() => {
     loadModel();
-  });
+  }, []);
 
   useEffect(() => {
     loadingAnimations();
   }, []);
 
-  //show loading animations at startup
-  const loadingAnimations = () => {
+ //show loading animations at startup
+ const loadingAnimations = () => {
     setDisableCamButton(true);
     setModelStatusCss("model-status-loading");
     setGarbageStatusCss("removed");
     setModelStatus("Object Detection Loading");
     setTimeout(() => {
-      setDisableCamButton(false);
       setModelStatusCss("removed");
       setGarbageStatusCss("garbage-status-trash");
+      setDisableCamButton(false);
     }, 2000);
   };
 
-  //Use the web cam
   const showWebCam = async () => {
-    setDisableCamButton(true);
-    const camPermissions = await checkCamPermission();
-    if (!camPermissions) {
-      alert("You have to allow camera permissions");
-    } else {
+    setDisableCamButton(true); // disable button wait for cam permission first
+
+    const camPermissions = await enableCam(true);
+    if (camPermissions) {
       if (enableCamText === "Restart Camera and Detection") {
         restartCamDetection();
       }
 
       await loadModel();
-
       setModelStatusCss("removed");
       setGarbageStatusCss("garbage-status-trash");
 
       await enableCam();
       setDisableStopButton(false);
-
       startDetection();
     }
   };
@@ -90,16 +88,14 @@ const GarbagePickupDemo = (props) => {
 
   //load the model
   const loadModel = async () => {
-    window.roboflow
+    await window.roboflow
       .auth({
         publishable_key: PUBLISHABLE_ROBOFLOW_API_KEY,
       })
       .load({
         model: PROJECT_URL,
         version: MODEL_VERSION,
-        onMetadata: function (m) {
-          inferRunning = true;
-        },
+        onMetadata: function (m) {},
       })
       .then((ml) => {
         model = ml;
@@ -108,21 +104,15 @@ const GarbagePickupDemo = (props) => {
 
   //Start detecting
   const startDetection = () => {
-    inferRunning = true;
     if (model) {
       detectInterval.current = setInterval(() => {
-        if (inferRunning) detect(model);
+        detect(model);
       }, 1000);
     }
   };
 
-  const clearCanvas = () => {
-    canvasRef.current.getContext("2d").clearRect(0, 0, 360, 360);
-  };
-
-  //Stop detection
-  const stopDetection = async () => {
-    inferRunning = false;
+   //Stop detection
+   const stopDetection = async () => {
     clearInterval(detectInterval.current);
 
     //clear canvas when stop detecting
@@ -131,114 +121,96 @@ const GarbagePickupDemo = (props) => {
     }, 500);
   };
 
-  // Check if webcam access is supported.
-  function getUserMediaSupported() {
-    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  }
 
-  const checkCamPermission = () => {
-    return new Promise(async (resolve) => {
-      const constraints = {
-        video: {
-          width: videoWidth,
-          height: videoHeight,
-          facingMode: "environment",
-        },
-      };
-
-      //activate webcam stream
-      try {
-        await navigator.mediaDevices
-          .getUserMedia(constraints)
-          .then(function (stream) {
-            stream.getVideoTracks().forEach((track) => {
-              track.stop();
-            });
-          });
-        resolve(true);
-      } catch (err) {
-        setDisableCamButton(true);
-        setDisableStopButton(true);
-        setEnableCamText("Allow your camera permissions and reload");
-        resolve(false);
-      }
-    });
+  const clearCanvas = () => {
+    canvasRef.current.getContext("2d").clearRect(0, 0, 360, 360);
   };
 
-  //Enable live webcam
-  const enableCam = async () => {
-    const constraints = {
-      video: {
-        width: videoWidth, //416
-        height: videoHeight, //416
-        facingMode: "environment",
-      },
-    };
+//Enable live webcam
+const enableCam = (checkCamPermission = false) => {
+  const constraints = {
+    video: {
+      width: videoWidth, //416
+      height: videoHeight, //416
+      facingMode: "environment",
+    },
+  };
 
-    //activate webcam stream
-    try {
-      await navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then(function (stream) {
-          streamSourceRef.current.srcObject = stream;
-          streamSourceRef.current.addEventListener("loadeddata", function () {
-            return true;
-          });
+  return navigator.mediaDevices.getUserMedia(constraints).then(
+    function (stream) {
+      if (checkCamPermission) {
+        stream.getVideoTracks().forEach((track) => {
+          track.stop();
         });
-    } catch (err) {
+        return true;
+      } else {
+        streamSourceRef.current.srcObject = stream;
+        streamSourceRef.current.addEventListener("loadeddata", function () {
+          return true;
+        });
+      }
+    },
+    (error) => {
       setDisableCamButton(true);
       setDisableStopButton(true);
+      checkCamPermission && alert("You have to allow camera permissions");
       setEnableCamText("Allow your camera permissions and reload");
-    }
-  };
+      return false;
+    },
+  );
+};
 
-  //Stop the camera
-  const stopCamera = () => {
-    if (
-      streamSourceRef.current != null &&
-      streamSourceRef.current.srcObject !== null
-    ) {
-      streamSourceRef.current.srcObject.getVideoTracks().forEach((track) => {
-        track.stop();
-      });
-    }
-    inferRunning = false;
-    setEnableCamText("Restart Camera and Detection");
-    stopDetection();
-    setDisableCamButton(false);
-    setDisableStopButton(true);
-  };
 
-  const restartDetection = (intervalTimer) => {
-    clearInterval(detectInterval.current);
-    detectInterval.current = undefined;
-    if (model) {
-      detectInterval.current = setInterval(() => {
-        if (inferRunning) detect(model);
-      }, intervalTimer);
-    }
-  };
 
-  let trashToleranceTicker = 0;
-  let trashToleranceTimer = undefined;
-  const emptyTrashTolerance = (start) => {
-    if (!start) {
-      clearInterval(trashToleranceTimer);
-    } else {
-      trashToleranceTimer = setInterval(() => {
-        trashToleranceTicker++;
-      }, 1000);
-    }
-    return trashToleranceTicker;
-  };
+
+const stopCamera = (options) => {
+  if (
+    streamSourceRef.current != null &&
+    streamSourceRef.current.srcObject !== null
+  ) {
+    streamSourceRef.current.srcObject.getVideoTracks().forEach((track) => {
+      track.stop();
+    });
+  }
+  stopDetection();
+  setEnableCamText("Restart Camera and Detection");
+  setTrashCanCss("trash-icon");
+  if(options !== "fromDetect"){
+    setGarbageStatus("Waiting for Garbage truck.");
+  }
+  setDisableCamButton(false);
+  setDisableStopButton(true);
+};
+
+const restartDetection = (intervalTimer) => {
+  clearInterval(detectInterval.current);
+  detectInterval.current = undefined;
+  if (model) {
+    detectInterval.current = setInterval(() => {
+      detect(model);
+    }, intervalTimer);
+  }
+};
+
+let trashToleranceTicker = 0;
+let trashToleranceTimer = undefined;
+const emptyTrashTolerance = (start) => {
+  if (!start) {
+    clearInterval(trashToleranceTimer);
+  } else {
+    trashToleranceTimer = setInterval(() => {
+      trashToleranceTicker++;
+    }, 1000);
+  }
+  return trashToleranceTicker;
+};
 
   //Detection stuff
   const detect = async (model) => {
     console.log("detect");
     if (
       typeof streamSourceRef.current !== "undefined" &&
-      streamSourceRef.current !== null &&
-      inferRunning === true
+      streamSourceRef.current !== null
     ) {
       adjustCanvas(videoWidth, videoHeight);
 
@@ -280,7 +252,7 @@ const GarbagePickupDemo = (props) => {
         emptyTrashTolerance(false);
         setTrashCanCss("trash-icon");
         setGarbageStatus("Emptied Trash Can!");
-        stopCamera();
+        stopCamera("fromDetect");
         pickupTimes.push(moment().format("ddd, MM-DD-YYYY, h:mm a"));
       }
 
@@ -306,12 +278,12 @@ const GarbagePickupDemo = (props) => {
       if (true) {
         //video
         var temp = row.bbox;
-        temp.class = row.class;
-        // row.class === "GarbageBin"
-        //   ? "bin"
-        //   : row.class === "garbagePickingUp"
-        //   ? "pickup"
-        //   : row.class;
+        temp.class =
+          row.class === "GarbageBin"
+            ? "bin"
+            : row.class === "garbagePickingUp"
+            ? "pickup"
+            : row.class;
         temp.color = row.color;
         temp.confidence = row.confidence;
         row = temp;
@@ -379,11 +351,12 @@ const GarbagePickupDemo = (props) => {
     });
   };
 
+
   return (
     <div className="outer-container">
       <div className="app-container">
         <p className="garbagedemo-testcases">
-          tested on: pixel 7 android blah, iphone chrome OS something
+          tested on: pixel 7 and iphone 11, chrome browser
         </p>
         <div className="container">
           <div className="top-container">
