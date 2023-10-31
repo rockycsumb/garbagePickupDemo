@@ -71,9 +71,22 @@ const GarbageInfo = () => {
         >
           twilio
         </a>
-        for text service to receive a text.
+        for text service to receive a text. This model uses about 300 images and
+        may not capture all forms of garbage trucks and bins. The more quality
+        image training material that is used, the better the machine learning
+        process can determine a broader range of garbage pickups.
       </p>
-      <p className="garbageinfo-p">A full stack course coming soon...</p>
+      <p className="garbageinfo-p">
+        You can view the video demo, and tutorial on a quick implementation of
+        the app here:
+        <a
+          className="youtube-link"
+          href="https://youtu.be/GprGGOzP138"
+          target="_blank"
+        >
+          "Garbage pickup video demo"
+        </a>
+      </p>
     </div>
   );
 };
